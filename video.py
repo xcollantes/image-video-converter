@@ -1,6 +1,8 @@
 import argparse
-from moviepy.editor import VideoFileClip
 import os
+import subprocess
+
+from moviepy.editor import VideoFileClip
 
 
 def check_gpu_availability():
@@ -44,9 +46,29 @@ def convert_to_gif(input_path, output_path=None, fps=10, resize_factor=1.0):
         if resize_factor != 1.0:
             video = video.resize(resize_factor)
 
-        # Convert to GIF
-        print(f"Converting {input_path} to GIF...")
-        video.write_gif(output_path, fps=fps)
+        # Check if GPU support is available
+        gpu_supports = check_gpu_availability()
+        if gpu_supports and any(gpu_supports.values()):
+            # Convert to GIF with GPU support
+            print(f"Converting {input_path} to GIF with GPU support...")
+            video.write_gif(
+                output_path,
+                fps=fps,
+                verbose=False,
+                logger=None,
+                writeLogfile=False,
+                ffmpeg_params=[
+                    "-hwaccel_device",
+                    "0",
+                    "-hwaccel_output_format",
+                    "cuda",
+                ],
+            )
+        else:
+            # Convert to GIF without GPU support
+            print(f"Converting {input_path} to GIF...")
+            video.write_gif(output_path, fps=fps)
+
         print(f"Successfully created GIF: {output_path}")
 
         # Close the video to free up resources
